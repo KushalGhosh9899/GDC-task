@@ -216,7 +216,7 @@ test("report pending & completed tasks", () => {
   ];
   tasks.forEach((tasks, i) => execSync(tasksTxtCli("add", `${i} "${tasks}"`)));
 
-  execSync(tasksTxtCli("done", "1"));
+  execSync(tasksTxtCli("done", "0"));
   execSync(tasksTxtCli("done", "2"));
 
   let date = new Date();

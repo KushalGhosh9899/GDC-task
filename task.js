@@ -29,6 +29,11 @@ switch (commands[2]) { //It will check for the commands entered
         mark_as_complete();
         break;
 
+    case 'report':
+        //Shows the statistics
+        show_stats();
+        break;
+
     default:
         // If there are no commands matched, the default code block will be executed.
         help();
@@ -123,17 +128,19 @@ function show_incomplete_tasks() {
                     }
                 }
             }
-            var obj = {}; //Object for sorting the task according to priority
+            var final_tasks = [];//Array for sorting the task according to priority
 
             for (i = 0; i < priority.length; i++) {
-                obj[priority[i]] = task[i]; //Stores all the value into object i.e., task followed by priority 
+                final_tasks.push([priority[i],task[i]]) //Stores all the value into array i.e., task followed by priority 
             }
+            
+            final_tasks=final_tasks.sort(); //Sorts the array
 
             var sno = 0;
-            for (const [key, value] of Object.entries(obj)) {
+            for (i=0; i < final_tasks.length; i++) {
                 sno++;
-                console.log(`${sno}. ${value} [${key}]`);
-            }
+                console.log(`${sno}. ${final_tasks[i][1]} [${final_tasks[i][0]}]`);
+             }
         });
     }
     else {
@@ -245,6 +252,12 @@ function mark_as_complete() {
                 console.log(error); // Displays the error
             }
 
+            // fs.writeFile(`${__dirname}/completed.txt`, '', (error) => {
+            //     if (error) {
+            //         console.log(error); // Displays the error
+            //     }
+            // })
+
             //Declaring and Initializing the Priority and Task array
             const priority = [];
             const task = [];
@@ -282,23 +295,15 @@ function mark_as_complete() {
                     break;
                 }
             }
-
             for (const [key, value] of Object.entries(obj)) {
                 console.log("Marked item as done.");
-
-                if (key == task_priority) {
-                    //Moving the completed task from task.txt to complete.txt file
-                    //Removes all the previous data into complete.txt file
-                    fs.writeFile(`${__dirname}/complete.txt`, '', (error) => {
-                        if (error) {
-                            console.log(error); // Displays the error
-                        }
-                    })
-
-                    // Writes all the Tasks with priorities in complete.txt file
+                
+                if (key == commands[3]) {
+                    //Moving the completed task from task.txt to completed.txt file    
+                    // Writes all the Tasks with priorities in completed.txt file
                     var task_data = `${value}\n`;
                     console.log(task_data);
-                    fs.appendFile(`${__dirname}/complete.txt`, task_data, (error) => {
+                    fs.appendFile(`${__dirname}/completed.txt`, task_data, (error) => {
                         if (error) {
                             console.log(error); // Displays the error
                         }
@@ -306,26 +311,25 @@ function mark_as_complete() {
 
                 }
 
-                // delete obj[task_priority];//Deletes the task according to the given priority because it is completed now
+                delete obj[task_priority];//Deletes the task according to the given priority because it is completed now
+            }
 
-                //Removes all the previous data into task.txt
-                fs.writeFile(task_file, '', (error) => {
+            //Removes all the previous data into task.txt
+            fs.writeFile(task_file, '', (error) => {
+                if (error) {
+                    console.log(error); // Displays the error
+                }
+            })
+
+            // Writes all the Tasks with priorities into task.txt
+            for (const [key, value] of Object.entries(obj)) {
+                var task_data = `${key} ${value}\n`;
+
+                fs.appendFile(task_file, task_data, (error) => {
                     if (error) {
                         console.log(error); // Displays the error
                     }
                 })
-
-                // Writes all the Tasks with priorities into task.txt
-                for (const [key, value] of Object.entries(obj)) {
-                    var task_data = `${key} ${value}\n`;
-
-                    fs.appendFile(task_file, task_data, (error) => {
-                        if (error) {
-                            console.log(error); // Displays the error
-                        }
-                    })
-                }
-                return;
             }
 
         })
@@ -334,4 +338,101 @@ function mark_as_complete() {
         console.log("There are no pending tasks!");
     }
 
+}
+
+// This Function will show all the pending and completed task stats
+function show_stats(){
+    //Reading from the task.txt File
+    const fs = require('fs');
+
+    var task_file = `${__dirname}/task.txt`;//Path of the task.txt file
+    var completed_task_file = `${__dirname}/completed.txt`;//Path of the completed.txt file
+
+    if (fs.existsSync(task_file)) { //Checks that file exists or not      
+        // Reading data in utf-8 format which is a type of character set 
+        fs.readFile(task_file, 'utf-8', (error, task_data) => {
+            if (error) {
+                console.log(error); // Displays the error
+            }
+
+            if (task_data.length == 0) {
+                console.log("Pending: 0\n");
+            }
+
+            //Declaring and Initializing the Priority and Task array
+            const priority = [];
+            const task = [];
+
+            var k = 0; //It stores the position of starting point of current line
+
+            for (i = 0; i <= task_data.length; i++) { //Extracts the Priority and Task
+
+                if (task_data.charCodeAt(i) == 32) { //It checks the space(32 is the ASCII value of spacebar)
+
+                    priority.push(task_data.slice(k, i)); //Stores the Priority value of the task
+                    var j = i;
+                    while (i <= task_data.length) {
+
+                        if (task_data.charCodeAt(i) == 10) { //It checks the End of line(10 is the ASCII value of \n)
+                            task.push(task_data.slice(j + 1, i)); //Stores the task into variable
+                            k = i + 1; //Changes the position of starting point of current line
+                            break;
+                        }
+                        i++;
+                    }
+                }
+            }
+            var final_tasks = [];//Array for sorting the task according to priority
+
+            for (i = 0; i < priority.length; i++) {
+                final_tasks.push([priority[i],task[i]]) //Stores all the value into array i.e., task followed by priority 
+            }
+            final_tasks=final_tasks.sort(); //Sorts the array
+
+            console.log("Pending : "+priority.length);//Shows numbers of pending tasks
+            var sno = 0;
+            for (i=0; i < final_tasks.length; i++) {
+                sno++;
+                console.log(`${sno}. ${final_tasks[i][1]} [${final_tasks[i][0]}]`);
+                sno++;
+             }
+        });
+    }
+    else {
+        console.log("Pending: 0\n");
+    }
+
+    // Completed Task
+    if (fs.existsSync(completed_task_file)) { //Checks that file exists or not      
+        // Reading data in utf-8 format which is a type of character set 
+        fs.readFile(completed_task_file, 'utf-8', (error, task_data) => { 
+            if (error) {
+                console.log(error); // Displays the error
+            }  
+            
+            //Declaring and Initializing the Task array
+            const task = [];
+
+            var k = 0; //It stores the position of starting point of current line
+
+            for (i = 0; i <= task_data.length; i++) { //Extracts the Priority and Task
+                if (task_data.charCodeAt(i) == 10) { //It checks the End of line(10 is the ASCII value of \n)
+                    task.push(task_data.slice(k, i)); //Stores the task into variable
+                    k = i + 1; //Changes the position of starting point of current line
+                }
+            }
+
+
+            console.log("\nCompleted : "+task.length);//Shows numbers of completed tasks
+            var sno = 0;
+            for (var i in task) {
+                sno++;
+                console.log(`${sno}. ${task[i]}`);
+            }
+        })
+    }
+    else {
+        console.log("Completed: 0\n");
+    }
+    
 }
