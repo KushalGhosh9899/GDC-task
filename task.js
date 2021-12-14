@@ -18,6 +18,10 @@ switch (commands[2]) { //It will check for the commands entered
         show_incomplete_tasks();
         break;
 
+    case 'del':
+        delete_task();
+        break;
+
     default:
         // If there are no commands matched, the default code block will be executed.
         help();
@@ -33,7 +37,6 @@ function help() {
     console.log(usage_guide); //Prints all the Instructions Guide
 
 }
-
 
 // This function will add task with priorities
 function add_task() {
@@ -65,7 +68,7 @@ function add_task() {
 
     // It will Write the data in task.txt file
     fs.appendFile(`${__dirname}/task.txt`, task_data, (error) => {
-        if (error){            
+        if (error) {
             console.log(error); // Displays the error
         }
     })
@@ -76,10 +79,78 @@ function add_task() {
 function show_incomplete_tasks() {
     //Reading from the task.txt File
     const fs = require('fs');
-    
+   
+    var task_file = `${__dirname}/task.txt`;//Path of the file
+
+    if(fs.existsSync(task_file)) { //Checks that file exists or not      
+        // Reading data in utf-8 format which is a type of character set 
+        fs.readFile(task_file, 'utf-8', (error, task_data) => {
+            if (error) {
+                console.log(error); // Displays the error
+            }
+
+            if (task_data.length == 0) {
+                console.log("There are no pending tasks!");
+            }
+
+            //Declaring and Initializing the Priority and Task array
+            const priority = [];
+            const task = [];
+
+            var k = 0; //It stores the position of starting point of current line
+
+            for (i = 0; i <= task_data.length; i++) { //Extracts the Priority and Task
+
+                if (task_data.charCodeAt(i) == 32) { //It checks the space(32 is the ASCII value of spacebar)
+
+                    priority.push(task_data.slice(k, i)); //Stores the Priority value of the task
+                    var j = i;
+                    while (i <= task_data.length) {
+
+                        if (task_data.charCodeAt(i) == 10) { //It checks the End of line(10 is the ASCII value of \n)
+                            task.push(task_data.slice(j + 1, i)); //Stores the task into variable
+                            k = i + 1; //Changes the position of starting point of current line
+                            break;
+                        }
+                        i++;
+                    }
+                }
+            }
+            var obj = {}; //Object for sorting the task according to priority
+
+            for (i = 0; i < priority.length; i++) {
+                obj[priority[i]] = task[i]; //Stores all the value into object i.e., task followed by priority 
+            }
+
+            var sno = 0;
+            for (const [key, value] of Object.entries(obj)) {
+                sno++;
+                console.log(`${sno}. ${value} [${key}]`);
+            }
+        });
+    }
+    else{
+        console.log("There are no pending tasks!");
+    }
+}
+
+// This function Delete the task according to the given priority number
+function delete_task() {
+
+    if (!commands[3]) {//Checks for priority task is passed or not
+        console.log("Error: Missing NUMBER for deleting tasks.");
+        return;
+    }
+    //Reading from the task.txt File
+    const fs = require('fs');
+
     // Reading data in utf-8 format which is a type of character set
-    fs.readFile(`${__dirname}/task.txt`, 'utf-8', (error, task_data) => {
-        if (error){            
+    var task_file = `${__dirname}/task.txt`;//Path of the file
+
+    if(fs.existsSync(task_file)) {//Checks that file exists or not
+         
+        fs.readFile(task_file, 'utf-8', (error, task_data) => {
+        if (error) {
             console.log(error); // Displays the error
         }
 
@@ -109,17 +180,40 @@ function show_incomplete_tasks() {
         var obj = {}; //Object for sorting the task according to priority
 
         for (i = 0; i < priority.length; i++) {
-            obj[priority[i]]=task[i];//Stores all the value into object i.e., task followed by priority 
+            obj[priority[i]] = task[i];//Stores all the value into object i.e., task followed by priority 
         }
 
-        var sno=0;        
-        for(const [key, value] of Object.entries(obj)){
-            sno++;
-            console.log(`${sno}. ${value} [${key}]`);//Prints all the Tasks with priorities
+        task_priority = commands[3];
+        
+        for (const [key, value] of Object.entries(obj)) {
+            console.log("Deleted task #" + commands[3]);
+
+            delete obj[task_priority];//Deletes the task according to the given priority
+
+            //Removes all the previous data
+            fs.writeFile(task_file, '', (error) => {
+                if (error) {
+                    console.log(error); // Displays the error
+                }
+            })
+
+            // Writes all the Tasks with priorities
+            for (const [key, value] of Object.entries(obj)) {
+                var task_data = `${key} ${value}\n`;
+
+                fs.appendFile(task_file, task_data, (error) => {
+                    if (error) {
+                        console.log(error); // Displays the error
+                    }
+                })
+            }
+            break;
         }
 
-        if(priority.length==0){
-            console.log("There are no pending tasks!");
-        }
+        console.log("Error: task with index #"+commands[3]+" does not exist. Nothing deleted.");
     })
+    }
+    else{
+        console.log("There are no pending tasks!");
+    }
 }
